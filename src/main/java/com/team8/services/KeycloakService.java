@@ -2,6 +2,9 @@ package com.team8.services;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -43,6 +46,20 @@ public class KeycloakService {
 
 	@Value("${keycloak.realm}")
 	private String REALM;
+	
+	private String generateHashID(String username, int phnnumber, String email, String nic){
+        MessageDigest messageDigest = null;
+        String hash = "" + username + phnnumber + email + nic;
+
+        try {
+            messageDigest = MessageDigest.getInstance("MD5");
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        }
+
+        messageDigest.update(hash.getBytes(), 0, hash.length());
+        return new BigInteger(1, messageDigest.digest()).toString(16);
+    }
 	
 	private UsersResource getKeycloakUserResource() {
 
@@ -97,7 +114,7 @@ public class KeycloakService {
 			UsersResource userRessource = getKeycloakUserResource();
 
 			UserRepresentation user = new UserRepresentation();
-			user.setUsername(userDTO.getUsername());
+			user.setUsername(new KeycloakService().generateHashID(userDTO.getUsername(), userDTO.getPhonenumber(), userDTO.getEmail(), userDTO.getNic()));
 			user.setEmail(userDTO.getEmail());
 			user.setEnabled(true);
 
@@ -191,5 +208,28 @@ public class KeycloakService {
 		}
 
 		return responseToken;
+	}
+	
+	public void logoutUser(String userId) {
+
+		UsersResource userRessource = getKeycloakUserResource();
+
+		userRessource.get(userId).logout();
+
+	}
+
+	public void resetPassword(String newPassword, String userId) {
+
+		UsersResource userResource = getKeycloakUserResource();
+
+		// Define password credential
+		CredentialRepresentation passwordCred = new CredentialRepresentation();
+		passwordCred.setTemporary(false);
+		passwordCred.setType(CredentialRepresentation.PASSWORD);
+		passwordCred.setValue(newPassword.toString().trim());
+
+		// Set password credential
+		userResource.get(userId).resetPassword(passwordCred);
+
 	}
 }

@@ -15,7 +15,7 @@ public class UserDto {
 	private String nic;
 	private String address;
 	private String imageOfDriverUrl;
-	
+
 	public String getDob() {
 		return dob;
 	}
